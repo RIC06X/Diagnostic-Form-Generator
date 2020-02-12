@@ -88,20 +88,20 @@ function getElementfromJson(object){
                 div.appendChild(radiobuttonGroup);
                 break;
             default:
+                //TODO finish text input 
                 break;
         }
         return div;
     }
-    
 }
 
+//TODO finish parsing json 
 function importJsonFile(){
     load_file.addEventListener('click', function(){
         alert("coming soon");
     });
 }
 
-//functions
 function AddNewList(){
     add_record.addEventListener('click', function(){
         var li = document.createElement('li');
@@ -145,20 +145,17 @@ function getNewRadioBtnGrp(data, name){
 
 function getNewSelector(data, placeholder){
     var selector = document.createElement('select');
-
     //set emptyOption for placeholder
     if (placeholder){
         var emptyOption = new Option(placeholder,'',false, true);
         emptyOption.disabled = true;
         selector.appendChild(emptyOption);
     }
-
     //add options
     data.forEach(function(element) {
         var option = new Option(element, element);
         selector.appendChild(option);
     });
-
     return selector;
 }
 
