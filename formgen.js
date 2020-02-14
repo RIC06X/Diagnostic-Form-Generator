@@ -45,10 +45,10 @@ var paramDynamic = {
             "type": "dropdown",
             "options": ["large", "medium", "small"]
         },
-        "measure": {
-            "type": "text",
-            "options": ["length", "width", "height"]
-        },
+        // "measure": {
+        //     "type": "text",
+        //     "options": ["length", "width", "height"]
+        // },
         "type": {
             "type": "radio button",
             "options": ["lytic", "blastic"]
@@ -75,26 +75,6 @@ function main(){
     AddNewList();
 }
 
-function getElementfromJson(object){
-    if (object){
-        var div = document.createElement('div');
-        switch (object.type){
-            case "dropdown":
-                var selector = getNewSelector(object.options);
-                div.appendChild(selector);
-                break;
-            case "radio button":
-                var radiobuttonGroup = getNewRadioBtnGrp(object.options);
-                div.appendChild(radiobuttonGroup);
-                break;
-            default:
-                //TODO finish text input 
-                break;
-        }
-        return div;
-    }
-}
-
 //TODO finish parsing json 
 function importJsonFile(){
     load_file.addEventListener('click', function(){
@@ -105,28 +85,80 @@ function importJsonFile(){
 function AddNewList(){
     add_record.addEventListener('click', function(){
         var li = document.createElement('li');
-
-        //add selector organ
-        var sel_organ = getNewSelector(Organ, "Organ");
-        sel_organ.addEventListener("change", function(){
-            console.log(this.value);
-        });
-        li.appendChild(sel_organ);
-
-
+        //add selector organ,diagnose
+        var sel_organ = document.createElement('select');
+        setSelectorOptions(sel_organ, Organ, "-Select Organ-");
+        var sel_diagnose = document.createElement('select');
+        setSelectorOptions(sel_diagnose, [], "-Select Diagnose-");
+        var option_area;
         //add delete button for this list element
         var deleteBtn = document.createElement('button');
-        deleteBtn.appendChild(document.createTextNode('delete'));
+        deleteBtn.textContent= 'delete';
+
+        sel_organ.addEventListener("change", function(){
+            removeOptions(sel_diagnose);
+            var new_diagonoses = diagnose[sel_organ.value];
+            setSelectorOptions(sel_diagnose, new_diagonoses , "-Select Diagnose-");
+        });
+        
+        sel_diagnose.addEventListener("change", function () {  
+            // remove previous options 
+            if (option_area){
+                li.removeChild(option_area);
+            }
+            option_area = document.createElement('div');
+            option_area.name = 'option_area';
+            if (sel_diagnose.value!=0){
+                var ui_elements_data = paramDynamic[sel_diagnose.value];
+                var ui_elements_data_keys = Object.keys(ui_elements_data);
+                console.log(ui_elements_data_keys);
+                ui_elements_data_keys.forEach(function(key){
+                    console.log(ui_elements_data[key]);
+                    var ui_element = getElementfromJSON(ui_elements_data[key], key);
+
+                    if (ui_element){
+                        option_area.appendChild(ui_element);
+                    }
+                });
+                //append text box;
+            }
+            deleteBtn.insertAdjacentElement("beforebegin",option_area);
+        });
         deleteBtn.addEventListener('click', function () {
             li.remove();
         });
+        li.appendChild(sel_organ);
+        li.appendChild(sel_diagnose);
         li.appendChild(deleteBtn);
         ul.appendChild(li);
     });
 }
 
+
+function getElementfromJSON(object, label_name){
+    if (object){
+        var rtnElement;
+        switch (object['type']){
+            case "dropdown":
+                rtnElement = document.createElement('select');
+                setSelectorOptions(rtnElement, object['options'], label_name);
+                break;
+            case "radio button":
+                rtnElement = getNewRadioBtnGrp(object.options, label_name);
+                break;
+            default:
+                //TODO finish text input 
+                console.log(object);
+                break;
+        }
+        return rtnElement;
+    }
+}
+
 function getNewRadioBtnGrp(data, name){
     var div = document.createElement('div');
+    var text = document.createTextNode(name+': ');
+    div.append(text);
     data.forEach(function (element) {  
         var radiobtn = document.createElement('input');
         //can be optimized by 
@@ -143,8 +175,7 @@ function getNewRadioBtnGrp(data, name){
     return div;
 }
 
-function getNewSelector(data, placeholder){
-    var selector = document.createElement('select');
+function setSelectorOptions(selector ,data, placeholder){
     //set emptyOption for placeholder
     if (placeholder){
         var emptyOption = new Option(placeholder,'',false, true);
@@ -152,11 +183,12 @@ function getNewSelector(data, placeholder){
         selector.appendChild(emptyOption);
     }
     //add options
-    data.forEach(function(element) {
-        var option = new Option(element, element);
-        selector.appendChild(option);
-    });
-    return selector;
+    if (data.length!=0){
+        for (var i=0; i < data.length; i++){
+            var option = new Option(data[i], data[i]);
+            selector.appendChild(option);
+        }
+    }
 }
 
 function removeOptions(selectObj){
@@ -174,6 +206,5 @@ function isEmpty(obj) {
         if(obj.hasOwnProperty(prop))
             return false;
     }
-
     return true;
 }
