@@ -93,7 +93,6 @@ function AddNewList() {
         var sel_param_number = document.createElement('select');
         setSelectorOptions(sel_param_number, [], "-Select Param Number-");
 
-
         //add delete button for this list element
         var deleteBtn = document.createElement('button');
         deleteBtn.textContent = 'delete';
@@ -122,7 +121,13 @@ function AddNewList() {
                 li.removeChild(option_area);
             }
             option_area = document.createElement('div');
-            option_area.name = 'option_area';
+            option_area.name = 'div_option_area';
+
+            var div_textbox_grp = document.createElement('div');
+            div_textbox_grp.name = 'div_textbox_grp';
+
+            var temp_confirm_btn = document.createElement('button');
+            temp_confirm_btn.textContent = 'confirm';
             //generate parameter selectors
             if (sel_param_number.value != 0) {
                 for (var i = 0; i < sel_param_number.value; i++) {
@@ -133,9 +138,13 @@ function AddNewList() {
                     var temp_sel_params = document.createElement('select');
                     var temp_checkbox = document.createElement("input");
                     var temp_label = document.createElement('label');
+
                     //Add uuid for selector and checkbox
+                    temp_div.id = temp_uuid + "_div";
                     temp_checkbox.id = temp_uuid;
                     temp_sel_params.id = temp_uuid + '_selector';
+
+
                     //Add param, non-param check box function
                     var grp_name = temp_uuid + '_parame_checkbox';
                     temp_checkbox.type = 'checkbox';
@@ -143,16 +152,81 @@ function AddNewList() {
                     temp_checkbox.value = 'hasParameter';
                     temp_label.htmlFor = grp_name;
                     temp_label.textContent = 'is parameter';
-
+                    //fill selector with options
                     setSelectorOptions(temp_sel_params, Object.keys(paramDynamic[sel_diagnose.value]), "-Select Params-");
                     temp_div.appendChild(temp_sel_params);
                     temp_div.appendChild(temp_checkbox);
                     temp_div.appendChild(temp_label);
                     option_area.appendChild(temp_div);
                     temp_sel_params.addEventListener("change", sel_handler());
-                    temp_checkbox.addEventListener("change", checkboxHandler(paramDynamic[sel_diagnose.value]));
+                    //temp_checkbox.addEventListener("change", checkboxHandler(paramDynamic[sel_diagnose.value]));
                 }
             }
+
+            //confirm btn for generate text box
+            temp_confirm_btn.addEventListener("click", function(){
+                console.log(this.parentNode);
+                var parent = this.parentNode;
+                var childNodes = parent.childNodes;
+                var all_select = true;
+
+                //find all combination of selections
+                var non_p_dict = {};
+                var p_arr = [];
+                childNodes.forEach(function(node){
+                    if (node.tagName !== 'BUTTON' && node.name !='div_textbox_grp'){
+                        var uuid = (node.id).substring(0,36);
+                        var temp_sel = document.getElementById(uuid+'_selector');
+                        var temp_chkbox = document.getElementById(uuid);
+                        console.log(temp_sel.value);
+                        if (temp_sel.value){
+                            if (!temp_chkbox.checked){
+                                non_p_dict[temp_sel.value] = paramDynamic[sel_diagnose.value][temp_sel.value].options;
+                            }
+                            else{
+                                p_arr.push(temp_sel.value);
+                            }
+                        }else{
+                            all_select=false;
+                            //TODO optimised to for-loop to use break;
+                        }
+                    }
+                });
+
+                //check all selectors have value
+                if (all_select){
+                    //delete textboxs and labels of last selections
+                    while(div_textbox_grp.hasChildNodes()){
+                        div_textbox_grp.removeChild(div_textbox_grp.lastChild);
+                    }
+                    //generate textbox and label combincation according to selections 
+                    var non_p_keys = Object.keys(non_p_dict);
+                    var non_p_combine_values_arr = combineArrays(Object.values(non_p_dict));
+                    for (var i = 0; i< non_p_combine_values_arr.length; i++){
+                        var str = '';
+                        for(var j = 0; j < non_p_keys.length; j++){
+                            str += non_p_keys[j]+': '+non_p_combine_values_arr[i][j]+"    ";
+                        }
+                        // console.log(str);
+                        var div_textbox = document.createElement('div');
+                        var temp_Textbox = document.createElement('input');
+                        temp_Textbox.type = 'text';
+                        temp_Textbox.name = str;
+                        var label = document.createElement('label');
+                        label.htmlFor = str;
+                        label.textContent = str;
+                        div_textbox.appendChild(label);
+                        div_textbox.appendChild(temp_Textbox);
+                        div_textbox_grp.appendChild(div_textbox);
+                    }
+                    //p_arr label + text input
+                }
+                else{
+                    alert('Please finish selection!');
+                }
+            });
+            option_area.appendChild(div_textbox_grp);
+            option_area.appendChild(temp_confirm_btn);
             deleteBtn.insertAdjacentElement("beforebegin", option_area);
         });
 
@@ -177,20 +251,39 @@ function sel_handler() {
         var check_id = sel_id.substring(0,36);
         var temp_checkbox = document.getElementById(check_id);
         temp_checkbox.checked = false;
-        // console.log(temp_checkbox);
+        var nextNode = this.parentNode.nextElementSibling;
+        while(nextNode){
+            if (nextNode.name == 'div_textbox_grp'){
+                while(nextNode.hasChildNodes()){
+                    nextNode.removeChild(nextNode.lastChild);
+                }
+                break;
+            }
+            nextNode = nextNode.nextElementSibling;
+        }
     };
 }
 
-//checkbox listener handler
+
 function checkboxHandler(json_ui) {
     return function(){
         var temp_sel = document.getElementById(this.id + '_selector');
+        var temp_div = document.getElementById(this.id + '_div');
         var value = temp_sel.value;
+        var param_ui = document.getElementById(this.id + '_param_ui');
+        //remove param_ui
         if (this.checked){
             console.log(value+ ' is a parameter');
-            //TODO implement UI
             console.log(json_ui[value]);
+            param_ui = getElementfromJSON(json_ui[value], value);
+            if (typeof param_ui !== 'undefined'){
+                param_ui.id = this.id + '_param_ui';
+                temp_div.appendChild(param_ui);
+            }
         }else{
+            if (param_ui){
+                temp_div.removeChild(param_ui);
+            }
             console.log(value+' is not a parameter');
         }
     };
@@ -202,31 +295,46 @@ function getElementfromJSON(object, label_name) {
         switch (object['type']) {
             case "dropdown":
                 rtnElement = document.createElement('select');
-                setSelectorOptions(rtnElement, object['options'], label_name);
+                setSelectorOptions(rtnElement, object.options);
                 break;
             case "radio button":
-                rtnElement = getNewRadioBtnGrp(object.options, label_name);
+                rtnElement = getRadioBtnGrp(object.options, label_name);
+                break;
+            case "text":
+                rtnElement = getTextInputGrp(object.options, label_name);
                 break;
             default:
                 //TODO finish text input 
-                console.log(object);
+                alert('no such object'+ object);
+                // console.log(object);
                 break;
         }
         return rtnElement;
     }
 }
 
-function getNewRadioBtnGrp(data, name) {
+function getTextInputGrp(json_ui, label_name){
     var div = document.createElement('div');
-    var text = document.createTextNode(name + ': ');
-    div.append(text);
+    div.name = label_name;
+    json_ui.forEach(function(lable){
+        var temp_Textbox = document.createElement('input');
+        temp_Textbox.type = 'text';
+        temp_Textbox.placeholder = lable;
+        div.appendChild(temp_Textbox);
+    });
+    return div;
+}
+
+function getRadioBtnGrp(data, name) {
+    var div = document.createElement('div');
+    // var text = document.createTextNode(name + ': ');
+    // div.append(text);
     data.forEach(function (element) {
         var radiobtn = document.createElement('input');
         //can be optimized by 
         radiobtn.type = 'radio';
         radiobtn.name = name;
         radiobtn.value = element;
-
         var label = document.createElement('label');
         label.htmlFor = name;
         label.textContent = element;
@@ -280,3 +388,84 @@ function isEmpty(obj) {
     return true;
 }
 
+//return [[a,b],[a,c],[a,d]] array of array
+function combineArrays( array_of_arrays ){
+    if( ! array_of_arrays ){
+        return [];
+    }
+    if( ! Array.isArray( array_of_arrays ) ){
+        return [];
+    }
+    if( array_of_arrays.length == 0 ){
+        return [];
+    }
+    for( let i = 0 ; i < array_of_arrays.length; i++ ){
+        if( ! Array.isArray(array_of_arrays[i]) || array_of_arrays[i].length == 0 ){
+            // If any of the arrays in array_of_arrays are not arrays or zero-length, return an empty array...
+            return [];
+        }
+    }
+    // Done with degenerate cases...
+
+    // Start "odometer" with a 0 for each array in array_of_arrays.
+    let odometer = new Array( array_of_arrays.length );
+    odometer.fill( 0 ); 
+    let output = [];
+    let newCombination = formCombination( odometer, array_of_arrays );
+    output.push( newCombination );
+    while ( odometer_increment( odometer, array_of_arrays ) ){
+        //console.log(odometer);
+        newCombination = formCombination( odometer, array_of_arrays );
+        output.push( newCombination );
+    }
+    return output;
+}/* combineArrays() */
+
+
+// Translate "odometer" to combinations from array_of_arrays
+function formCombination( odometer, array_of_arrays ){
+    // In Imperative Programmingese (i.e., English):
+    // let s_output = "";
+    // for( let i=0; i < odometer.length; i++ ){
+    //    s_output += "" + array_of_arrays[i][odometer[i]]; 
+    // }
+    // return s_output;
+
+    // In Functional Programmingese (Henny Youngman one-liner):
+    return odometer.reduce(
+        function(accumulator, odometer_value, odometer_index){
+            accumulator.push(array_of_arrays[odometer_index][odometer_value]);
+            return accumulator;
+        },[]
+    );
+}/* formCombination() */
+
+function odometer_increment( odometer, array_of_arrays ){
+
+    // Basically, work you way from the rightmost digit of the "odometer"...
+    // if you're able to increment without cycling that digit back to zero,
+    // you're all done, otherwise, cycle that digit to zero and go one digit to the
+    // left, and begin again until you're able to increment a digit
+    // without cycling it...simple, huh...?
+    for( let i_odometer_digit = odometer.length-1; i_odometer_digit >=0; i_odometer_digit-- ){ 
+        let maxee = array_of_arrays[i_odometer_digit].length - 1;         
+        if( odometer[i_odometer_digit] + 1 <= maxee ){
+            // increment, and you're done...
+            odometer[i_odometer_digit]++;
+            return true;
+        }
+        else{
+            if( i_odometer_digit - 1 < 0 ){
+                // No more digits left to increment, end of the line...
+                return false;
+            }
+            else{
+                // Can't increment this digit, cycle it to zero and continue
+                // the loop to go over to the next digit...
+                odometer[i_odometer_digit]=0;
+                continue;
+            }
+        }
+    }/* for( let odometer_digit = odometer.length-1; odometer_digit >=0; odometer_digit-- ) */
+
+}/* odometer_increment() */
