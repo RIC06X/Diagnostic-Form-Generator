@@ -1,0 +1,23 @@
+{
+    "diagName1 (e.g. fracture(B))": {
+                                    "#ofSentences" : "int (e.g. 3)",
+                                    "sentence1" : {
+                                                    "#ofFormats" : "int (e.g. 4)",
+                                                    "Param" : ["size", "displaced", "impression", "...."],   // 不区分Non-P和P
+                                                    "format1" : {
+                                                                  "Non-P Value" : ["no", "no", "...."],   // 当前format对应的所有 "Non-P" 参数的值
+                                                                  "text" : "This patient has no displaced and impression, size is {size}", // size 是一个 non-P, 用花括号包含，不保存具体值
+                                                    },
+                                                    "format2" : {
+                                                        "Non-P Value" : ["yes", "yes", "...."],
+                                                        "text" : "This patient has displaced and impression, size is {size}",
+                                                    },
+                                                    "format3" : {"...."},
+                                                    "format4" : {"...."},
+                                    },
+                                    "sentence2" : {"........"},
+                                    "sentence3" : {"........"},
+    },
+    "diagName2": {"..............."},
+    ....
+}
