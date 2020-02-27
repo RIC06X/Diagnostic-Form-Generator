@@ -67,7 +67,7 @@ var paramDynamic = {
 var add_record = document.getElementById("add");
 var load_file = document.getElementById("load_file");
 var ul = document.getElementById('list');
-
+var output_data = {};
 //main 
 main();
 
@@ -125,9 +125,14 @@ function AddNewList() {
 
             var div_textbox_grp = document.createElement('div');
             div_textbox_grp.name = 'div_textbox_grp';
+            div_textbox_grp.setAttribute('class', 'container_textbox_grp');
 
             var temp_confirm_btn = document.createElement('button');
             temp_confirm_btn.textContent = 'confirm';
+
+            var temp_save_btn = document.createElement('button');
+            temp_save_btn.textContent = 'save';
+
             //generate parameter selectors
             if (sel_param_number.value != 0) {
                 for (var i = 0; i < sel_param_number.value; i++) {
@@ -163,22 +168,26 @@ function AddNewList() {
                 }
             }
 
+            var non_p_dict;
+            var p_arr;
+            var non_p_keys;
+            var non_p_combine_values_arr;
             //confirm btn for generate text box
             temp_confirm_btn.addEventListener("click", function(){
-                console.log(this.parentNode);
+                //console.log(this.parentNode);
                 var parent = this.parentNode;
                 var childNodes = parent.childNodes;
                 var all_select = true;
 
                 //find all combination of selections
-                var non_p_dict = {};
-                var p_arr = [];
+                non_p_dict = {};
+                p_arr = [];
                 childNodes.forEach(function(node){
                     if (node.tagName !== 'BUTTON' && node.name !='div_textbox_grp'){
                         var uuid = (node.id).substring(0,36);
                         var temp_sel = document.getElementById(uuid+'_selector');
                         var temp_chkbox = document.getElementById(uuid);
-                        console.log(temp_sel.value);
+                        //console.log(temp_sel.value);
                         if (temp_sel.value){
                             if (!temp_chkbox.checked){
                                 non_p_dict[temp_sel.value] = paramDynamic[sel_diagnose.value][temp_sel.value].options;
@@ -200,24 +209,21 @@ function AddNewList() {
                         div_textbox_grp.removeChild(div_textbox_grp.lastChild);
                     }
                     //generate textbox and label combincation according to selections 
-                    var non_p_keys = Object.keys(non_p_dict);
-                    var non_p_combine_values_arr = combineArrays(Object.values(non_p_dict));
-                    for (var i = 0; i< non_p_combine_values_arr.length; i++){
-                        var str = '';
-                        for(var j = 0; j < non_p_keys.length; j++){
-                            str += non_p_keys[j]+': '+non_p_combine_values_arr[i][j]+"    ";
+                    if (isEmpty(non_p_dict)){
+                        var str_p = 'Parameter(s): '+ p_arr;
+                        div_textbox_grp.appendChild(get_textbox_list(str_p));
+
+                    }else{
+                        non_p_keys = Object.keys(non_p_dict);
+                        non_p_combine_values_arr = combineArrays(Object.values(non_p_dict));
+                        for (var i = 0; i< non_p_combine_values_arr.length; i++){
+                            var str = '';
+                            for(var j = 0; j < non_p_keys.length; j++){
+                                str += non_p_keys[j]+': '+non_p_combine_values_arr[i][j]+"    ";
+                            }
+                            // console.log(str);
+                            div_textbox_grp.appendChild(get_textbox_list(str));
                         }
-                        // console.log(str);
-                        var div_textbox = document.createElement('div');
-                        var temp_Textbox = document.createElement('input');
-                        temp_Textbox.type = 'text';
-                        temp_Textbox.name = str;
-                        var label = document.createElement('label');
-                        label.htmlFor = str;
-                        label.textContent = str;
-                        div_textbox.appendChild(label);
-                        div_textbox.appendChild(temp_Textbox);
-                        div_textbox_grp.appendChild(div_textbox);
                     }
                     //p_arr label + text input
                 }
@@ -225,8 +231,37 @@ function AddNewList() {
                     alert('Please finish selection!');
                 }
             });
+
+            temp_save_btn.addEventListener("click", function () { 
+                var parent = this.parentNode;
+                var div_textbox_grp = parent.querySelector('.container_textbox_grp');
+                var text_box_grp = div_textbox_grp.querySelectorAll('.container_textbox_list');
+                var rtn_texbox_json = {};
+
+                if (non_p_combine_values_arr){
+                    rtn_texbox_json['#ofFormats'] = non_p_combine_values_arr.length;
+                    rtn_texbox_json.Param = non_p_keys;
+                    for (var i = 0 ; i < non_p_combine_values_arr.length; i++){
+                        var key = 'format'+i;
+                        var temp_textbox_li = {};
+                        temp_textbox_li['Non-P Value'] = non_p_combine_values_arr[i];
+                        temp_textbox_li['text'] = text_box_grp[i].querySelector('.textbox_user_input').value;
+                        rtn_texbox_json[key] = temp_textbox_li;
+                    }
+                }else{
+                    rtn_texbox_json['#ofFormats'] = 1;
+                    rtn_texbox_json.Param = p_arr;
+                    var key_p = 'format0';
+                    var temp_textbox_li_p = {};
+                    temp_textbox_li_p['text'] = text_box_grp[0].querySelector('.textbox_user_input').value;
+                    rtn_texbox_json[key_p] = temp_textbox_li_p;
+                }
+                console.log(JSON.stringify(rtn_texbox_json));
+            });
+
             option_area.appendChild(div_textbox_grp);
             option_area.appendChild(temp_confirm_btn);
+            option_area.appendChild(temp_save_btn);
             deleteBtn.insertAdjacentElement("beforebegin", option_area);
         });
 
@@ -241,6 +276,22 @@ function AddNewList() {
         li.appendChild(deleteBtn);
         ul.appendChild(li);
     });
+}
+
+function get_textbox_list(str){
+    var div_textbox = document.createElement('div');
+    div_textbox.setAttribute('class', 'container_textbox_list');
+    var temp_Textbox = document.createElement('input');
+    temp_Textbox.type = 'text';
+    temp_Textbox.name = str;
+    temp_Textbox.setAttribute('class','textbox_user_input');
+    var label = document.createElement('label');
+    label.setAttribute('class', 'label_user_input');
+    label.htmlFor = str;
+    label.textContent = str;
+    div_textbox.appendChild(label);
+    div_textbox.appendChild(temp_Textbox);
+    return div_textbox;
 }
 
 //selector listener handler
