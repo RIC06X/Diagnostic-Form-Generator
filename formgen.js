@@ -5,6 +5,8 @@ var save_file = document.getElementById("save_to_file");
 var ul = document.getElementById('list');
 var output_json = {};
 var output_temp = {};
+//update each sel_diagnos make new selection to improve efficiency of next list generation
+var latest_selection;
 
 main();
 
@@ -53,12 +55,10 @@ function saveJsonFile() {
 //         }
 //         div_textbox_area{
 //             div_textbox_grp{
-//                 ul{
-//                     div_textbox{
-//                             label
-//                             temp_textbox
-//                     }
-//                 }
+//                div_textbox{
+//                        label
+//                        temp_textbox
+//               }
 //             }
 //             temp_save_btn
 //         }
@@ -68,18 +68,25 @@ function saveJsonFile() {
 function AddNewList() {
     add_record.addEventListener('click', function () {
         var li = document.createElement('li');
-        //Divider for selectors
-        var div_selectors = document.createElement('div');
-        div_selectors.setAttribute('class', 'div_selectors');
+        
+        var div_sel_header = document.createElement('div');
+        div_sel_header.setAttribute('class', 'div_sel_header row');
 
-        var sel_organ = document.createElement('select');
-        setSelectorOptions(sel_organ, Organ, "-Select Organ-");
+        var div_selectors = document.createElement('div');
+        div_selectors.setAttribute('class', 'div_selectors form-group');
+
         var sel_diagnose = document.createElement('select');
-        setSelectorOptions(sel_diagnose, [], "-Select Diagnose-");
+        // sel_diagnose.setAttribute('class', 'form-control');
+        setSelectorOptions(sel_diagnose, Object.keys(paramDynamic), "-Select Diagnose-");
+
+        if (latest_selection){
+            sel_diagnose.value = latest_selection;
+        }
+        
         var sel_param_number = document.createElement('select');
+        // sel_param_number.setAttribute('class', 'form-control');
         setSelectorOptions(sel_param_number, [], "-Select Param Number-");
 
-        div_selectors.appendChild(sel_organ);
         div_selectors.appendChild(sel_diagnose);
         div_selectors.appendChild(sel_param_number);
 
@@ -88,8 +95,10 @@ function AddNewList() {
         deleteBtn.textContent = 'delete';
 
         //Append sub UI element under current list
-        li.appendChild(div_selectors);
-        li.appendChild(deleteBtn);
+        div_sel_header.appendChild(div_selectors);
+        div_sel_header.appendChild(deleteBtn);
+        li.appendChild(div_sel_header);
+
         ul.appendChild(li);
 
         deleteBtn.addEventListener('click', function () {
@@ -97,20 +106,13 @@ function AddNewList() {
             //TODO remove list item from json data
         });
 
-        sel_organ.addEventListener("change", function () {
-            removeOptions(sel_diagnose);
-            var new_diagonoses = diagnose[sel_organ.value];
-            setSelectorOptions(sel_diagnose, new_diagonoses, "-Select Diagnose-");
-        });
-
         //set sel_diagose listener to fill set_param_number options
         sel_diagnose.addEventListener("change", function () {
             //delete previous selection and data
             removeOptions(sel_param_number);
-            if (div_autogen_area){
+            if (li.contains(div_autogen_area)) {
                 li.removeChild(div_autogen_area);
             }
-
             var param_number = [];
             //console.log(sel_diagnose.value);
             //console.log(paramDynamic[sel_diagnose.value]);
@@ -118,19 +120,24 @@ function AddNewList() {
                 param_number.push(i);
             }
             setSelectorOptions(sel_param_number, param_number, "-Select Param Number-");
+            //update latest_selection to improve efficiency of next list generation
+            latest_selection = sel_diagnose.value;
         });
 
         var div_autogen_area;
         sel_param_number.addEventListener("change", function () {
-            if (div_autogen_area) {
+            //BUG if select diagnose twice, bug appears, div_autogen_area found.
+            if (li.contains(div_autogen_area)) {
                 li.removeChild(div_autogen_area);
             }
             //implement ui structure
             div_autogen_area = document.createElement('div');
             div_autogen_area.setAttribute('class', 'div_autogenform');
+            li.appendChild(div_autogen_area);
 
             var div_selection_area = document.createElement('div');
-            div_selection_area.setAttribute('class', 'div_selection_area');
+            div_selection_area.setAttribute('class', 'div_selection_area row');
+
             var div_selector_grp = document.createElement('div');
             div_selector_grp.setAttribute('class', 'div_selector_grp');
             var temp_confirm_btn = document.createElement('button');
@@ -140,18 +147,21 @@ function AddNewList() {
 
 
             var div_textbox_area = document.createElement('div');
-            div_textbox_area.setAttribute('class', 'div_textbox_area');
+            div_textbox_area.setAttribute('class', 'div_textbox_area row');
             var div_textbox_grp = document.createElement('div');
             div_textbox_grp.setAttribute('class', 'div_textbox_grp');
+
             var temp_save_btn = document.createElement('button');
             temp_save_btn.textContent = 'save';
+            temp_save_btn.style.display = 'none';
+
             div_textbox_area.appendChild(div_textbox_grp);
             div_textbox_area.appendChild(temp_save_btn);
 
             div_autogen_area.appendChild(div_selection_area);
             div_autogen_area.appendChild(div_textbox_area);
 
-            li.appendChild(div_autogen_area);
+            
 
             //populate child ui elements for div_selector_grp
             if (sel_param_number.value != 0) {
@@ -163,10 +173,10 @@ function AddNewList() {
                     var temp_checkbox = document.createElement("input");
                     var temp_label = document.createElement('label');
 
-
                     temp_checkbox.type = 'checkbox';
                     temp_checkbox.value = 'hasParameter';
-                    temp_label.textContent = 'is parameter';
+                    temp_checkbox.style.display = 'none';
+                    //temp_label.textContent = 'is parameter';
                     //fill selector with options
                     setSelectorOptions(temp_sel_params, Object.keys(paramDynamic[sel_diagnose.value]), "-Select Params-");
                     div_selector_row.appendChild(temp_sel_params);
@@ -231,6 +241,8 @@ function AddNewList() {
                         }
                     }
                     //p_arr label + text input
+                    temp_save_btn.style.display = "block";
+                    temp_confirm_btn.textContent = 'update';
                 }
                 else{
                     alert('Please finish selection!');
@@ -243,10 +255,12 @@ function AddNewList() {
                 var text_box_grp = div_textbox_grp.querySelectorAll('.div_textbox_row');
                 //temporary json dict for holding infomation
                 var rtn_texbox_json = {};
+
                 if (non_p_combine_values_arr){
-                    //handle cases that has no parameter related selections
+                    //Non-Parameter related selections
                     rtn_texbox_json['#ofFormats'] = non_p_combine_values_arr.length;
-                    rtn_texbox_json.Param = non_p_keys;
+                    rtn_texbox_json.Param = p_arr;
+                    rtn_texbox_json.Non_P = non_p_keys;
                     for (var i = 0 ; i < non_p_combine_values_arr.length; i++){
                         var index = i+1;
                         var key = 'format'+ index;
@@ -257,11 +271,13 @@ function AddNewList() {
                     }
                     non_p_combine_values_arr=[];
                 }else{
-                    //handle cases that has parameter related selections
+                    //Parameter only related selections
                     rtn_texbox_json['#ofFormats'] = 1;
                     rtn_texbox_json.Param = p_arr;
+                    rtn_texbox_json.Non_P = [];
                     var key_p = 'format1';
                     var temp_textbox_li_p = {};
+                    temp_textbox_li_p['Non-P Value'] = [];
                     temp_textbox_li_p['text'] = text_box_grp[0].querySelector('.textbox_user_input').value;
                     rtn_texbox_json[key_p] = temp_textbox_li_p;
                 }
@@ -301,8 +317,11 @@ function sel_handler() {
         //uncheck the following checkbox and delete the previous generated div_textbox_grp
         var div_selector_row = this.parentNode;
         var temp_checkbox = div_selector_row.children[1];
+        var temp_label   = div_selector_row.children[2];
         var div_autogenform = div_selector_row.parentNode.parentNode.parentNode;
         var div_textbox_grp = div_autogenform.children[1].children[0];
+        temp_checkbox.style.display = 'block';
+        temp_label.textContent = 'Check to use '+ this.value + ' notation to replace all '+ this.value+' in the textarea';
 
         temp_checkbox.checked = false;
         while (div_textbox_grp.hasChildNodes()){
@@ -451,8 +470,8 @@ function exportToJsonFile(jsonData) {
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
 }
-//John D. Aynedjian's Code END
 
+//John D. Aynedjian's Code END
 
 
 

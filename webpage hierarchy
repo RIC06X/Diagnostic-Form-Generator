@@ -1,0 +1,55 @@
+Current Order:
+
+li{
+    sel_organ
+    sel_diagose
+    sel_param_number
+    option_area{
+        temp_div{
+            temp_sel_params
+            temp_checkbox
+            temp_label
+        }
+        div_textbox_grp{
+            div_textbox{
+                label
+                temp_textbox
+            }
+        }
+        temp_confirm_btn
+        temp_save_btn
+    }
+    deleteBtn
+}
+
+Goal Order:
+
+li{
+    div_selectors{
+        sel_organ
+        sel_diagose
+        sel_param_number
+    }
+    deleteBtn
+    div_autogenform{
+        div_selection_area{
+            div_selector_grp{
+                temp_sel_params
+                temp_checkbox
+                temp_label
+            }
+            temp_confirm_btn
+        }
+        div_textbox_area{
+            div_textbox_grp{
+                ul{
+                    div_textbox{
+                            label
+                            temp_textbox
+                    }
+                }
+            }
+            temp_save_btn
+        }
+    }
+}
