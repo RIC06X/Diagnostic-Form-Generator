@@ -1,5 +1,4 @@
-#
-所有可能的器官：
+console.log('data loaded');
 var Organ = ["NONE",
     "right frontal bone",
     "left frontal bone",
@@ -86,8 +85,6 @@ var Organ = ["NONE",
     "right mandibular heasd"
 ];
 
-#
-选定的器官对应所有可能的诊断：
 var diagnose = {
     "none": [],
     "right frontal bone": ["fracture(B)", "lesion(B)"],
@@ -174,8 +171,6 @@ var diagnose = {
     "right mandibular heasd": []
 };
 
-#
-选定器官和诊断， 对应的所有可能的参数及类型：
 var paramDynamic = {
     "fracture(B)": {
         "pos": "bone",
@@ -598,4 +593,4 @@ var paramDynamic = {
             "options": ["yes", "no"]
         }
     }
-}
+};
