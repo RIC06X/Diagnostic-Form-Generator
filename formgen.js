@@ -3,9 +3,8 @@ console.log("formgen connected");
 var add_record = document.getElementById("add");
 var save_file = document.getElementById("save_to_file");
 var ul = document.getElementById('list');
-var output_json = {};
 var output_temp = {};
-//update each sel_diagnos make new selection to improve efficiency of next list generation
+//TODO update each sel_diagnos make new selection to improve efficiency of next list generation
 var latest_selection;
 
 main();
@@ -15,22 +14,37 @@ function main() {
     saveJsonFile();
 }
 
-//TODO finish parsing json 
 function saveJsonFile() {
     save_file.addEventListener('click', function () {
-        var keys = Object.keys(output_temp);
-        keys.forEach(function (key){
+        //var keys = Object.keys(output_temp);
+        var output_json = {};
+        var out_values = Object.values(output_temp);
+        //console.log(out_values);
+        var out_dict = {};
+        //put diganose data with same diagnose name under same dicts;
+        out_values.forEach(function(e){
+            var key = Object.keys(e)[0];
+            var value = Object.values(e)[0];
+            if (!out_dict[key]){
+                out_dict[key]=[];
+            }
+            out_dict[key].push(value);
+        });
+        console.log(out_dict);
+
+        var diagnose_names = Object.keys(out_dict);
+        diagnose_names.forEach(function(key){
             var temp = {};
-            temp["#ofSentences"] = output_temp[key].length;
-            for (var i = 0; i< output_temp[key].length;i++){
+            temp["#ofSentences"] = out_dict[key].length;
+            for (var i = 0; i< out_dict[key].length;i++){
                 var index = i+1;
                 var str = 'sentence'+index;
-                temp[str]= output_temp[key][i];
+                temp[str]= out_dict[key][i];
             }
             output_json[key]=temp;
         });
-        exportToJsonFile(output_json);
         //console.log(output_json);
+        exportToJsonFile(output_json);
     });
 }
 
@@ -68,6 +82,10 @@ function saveJsonFile() {
 function AddNewList() {
     add_record.addEventListener('click', function () {
         var li = document.createElement('li');
+
+        //set uuid for both li and element, modify element need also change here. 
+        var uuid = create_UUID();
+        li.id = uuid;
         
         var div_sel_header = document.createElement('div');
         div_sel_header.setAttribute('class', 'div_sel_header row');
@@ -79,9 +97,10 @@ function AddNewList() {
         // sel_diagnose.setAttribute('class', 'form-control');
         setSelectorOptions(sel_diagnose, Object.keys(paramDynamic), "-Select Diagnose-");
 
-        if (latest_selection){
-            sel_diagnose.value = latest_selection;
-        }
+        //TODO Fix last selection
+        // if (latest_selection){
+        //     sel_diagnose.value = latest_selection;
+        // }
         
         var sel_param_number = document.createElement('select');
         // sel_param_number.setAttribute('class', 'form-control');
@@ -102,6 +121,7 @@ function AddNewList() {
         ul.appendChild(li);
 
         deleteBtn.addEventListener('click', function () {
+            delete output_temp[uuid];
             li.remove();
             //TODO remove list item from json data
         });
@@ -114,14 +134,10 @@ function AddNewList() {
                 li.removeChild(div_autogen_area);
             }
             var param_number = [];
-            //console.log(sel_diagnose.value);
-            //console.log(paramDynamic[sel_diagnose.value]);
             for (var i = 1; i < Object.keys(paramDynamic[sel_diagnose.value]).length; i++) {
                 param_number.push(i);
             }
             setSelectorOptions(sel_param_number, param_number, "-Select Param Number-");
-            //update latest_selection to improve efficiency of next list generation
-            latest_selection = sel_diagnose.value;
         });
 
         var div_autogen_area;
@@ -161,8 +177,6 @@ function AddNewList() {
             div_autogen_area.appendChild(div_selection_area);
             div_autogen_area.appendChild(div_textbox_area);
 
-            
-
             //populate child ui elements for div_selector_grp
             if (sel_param_number.value != 0) {
                 for (var i = 0; i < sel_param_number.value; i++) {
@@ -176,7 +190,6 @@ function AddNewList() {
                     temp_checkbox.type = 'checkbox';
                     temp_checkbox.value = 'hasParameter';
                     temp_checkbox.style.display = 'none';
-                    //temp_label.textContent = 'is parameter';
                     //fill selector with options
                     setSelectorOptions(temp_sel_params, Object.keys(paramDynamic[sel_diagnose.value]), "-Select Params-");
                     div_selector_row.appendChild(temp_sel_params);
@@ -201,6 +214,7 @@ function AddNewList() {
                 //find all combination of selections
                 non_p_dict = {};
                 p_arr = [];
+                non_p_combine_values_arr = [];
                 var grp = div_selector_grp.children;
                 for (var i = 0; i < grp.length; i++){
                         var temp_sel    = grp[i].children[0];
@@ -217,7 +231,7 @@ function AddNewList() {
                         }
                 }
 
-                // all selections have been made 
+                // all selections have been made, 
                 if (flg_all_selection_made){
                     //delete textboxs and labels of last selections (child nodes of div_textbox_grp)
                     while(div_textbox_grp.hasChildNodes()){
@@ -249,46 +263,52 @@ function AddNewList() {
                 }
             });
 
+            //save textbox value to dict for future json output use
             temp_save_btn.addEventListener("click", function () { 
                 var div_textbox_area = this.parentNode;
                 var div_textbox_grp = div_textbox_area.children[0]; 
                 var text_box_grp = div_textbox_grp.querySelectorAll('.div_textbox_row');
                 //temporary json dict for holding infomation
-                var rtn_texbox_json = {};
 
-                if (non_p_combine_values_arr){
+                //delete privous saved data
+                if (output_temp[sel_diagnose.value]){
+                    if (output_temp[sel_diagnose.value][uuid]){
+                        //console.log(output_temp[sel_diagnose.value][uuid]);
+                        delete output_temp[sel_diagnose.value][uuid];
+                    }
+                }
+
+                var usr_data_wrapper = {};
+                var user_data = {};
+                if (non_p_combine_values_arr.length!=0){
                     //Non-Parameter related selections
-                    rtn_texbox_json['#ofFormats'] = non_p_combine_values_arr.length;
-                    rtn_texbox_json.Param = p_arr;
-                    rtn_texbox_json.Non_P = non_p_keys;
+                    //if rtn_te
+                    user_data['#ofFormats'] = non_p_combine_values_arr.length;
+                    user_data.Param = p_arr;
+                    user_data.Non_P = non_p_keys;
                     for (var i = 0 ; i < non_p_combine_values_arr.length; i++){
                         var index = i+1;
                         var key = 'format'+ index;
                         var temp_textbox_li = {};
                         temp_textbox_li['Non-P Value'] = non_p_combine_values_arr[i];
-                        temp_textbox_li['text'] = text_box_grp[i].querySelector('.textbox_user_input').value;
-                        rtn_texbox_json[key] = temp_textbox_li;
+                        temp_textbox_li.text = text_box_grp[i].querySelector('.textbox_user_input').value;
+                        user_data[key] = temp_textbox_li;
                     }
-                    non_p_combine_values_arr=[];
                 }else{
                     //Parameter only related selections
-                    rtn_texbox_json['#ofFormats'] = 1;
-                    rtn_texbox_json.Param = p_arr;
-                    rtn_texbox_json.Non_P = [];
+                    user_data['#ofFormats'] = 1;
+                    user_data.Param = p_arr;
+                    user_data.Non_P = [];
                     var key_p = 'format1';
                     var temp_textbox_li_p = {};
                     temp_textbox_li_p['Non-P Value'] = [];
-                    temp_textbox_li_p['text'] = text_box_grp[0].querySelector('.textbox_user_input').value;
-                    rtn_texbox_json[key_p] = temp_textbox_li_p;
+                    temp_textbox_li_p.text = text_box_grp[0].querySelector('.textbox_user_input').value;
+                    user_data[key_p] = temp_textbox_li_p;
                 }
-                //save rtn_texbox_json to output_temp for further json process
-                if (isEmpty(output_temp[sel_diagnose.value])){
-                    output_temp[sel_diagnose.value]=[];
-                    output_temp[sel_diagnose.value].push(rtn_texbox_json);
-                }else{
-                    output_temp[sel_diagnose.value].push(rtn_texbox_json);
-                }
-                console.log(JSON.stringify(rtn_texbox_json));
+                
+                usr_data_wrapper[sel_diagnose.value] = user_data;
+                output_temp[uuid] = usr_data_wrapper;
+                //console.log(JSON.stringify(output_temp));
             });
         });
     });
@@ -373,6 +393,16 @@ function isEmpty(obj) {
             return false;
     }
     return true;
+}
+
+function create_UUID() {
+    var dt = new Date().getTime();
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = (dt + Math.random() * 16) % 16 | 0;
+        dt = Math.floor(dt / 16);
+        return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+    return uuid;
 }
 
 // Thanks John D. Aynedjian from StackOverFlow for his method to compute combination of arrais!
@@ -470,7 +500,6 @@ function exportToJsonFile(jsonData) {
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
 }
-
 //John D. Aynedjian's Code END
 
 
@@ -530,12 +559,4 @@ function exportToJsonFile(jsonData) {
 //     return div;
 // }
 
-// function create_UUID() {
-//     var dt = new Date().getTime();
-//     var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-//         var r = (dt + Math.random() * 16) % 16 | 0;
-//         dt = Math.floor(dt / 16);
-//         return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-//     });
-//     return uuid;
-// }
+
